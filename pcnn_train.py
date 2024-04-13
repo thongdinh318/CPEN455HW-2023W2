@@ -24,7 +24,7 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     loss_tracker = mean_tracker()
     
     for batch_idx, item in enumerate(tqdm(data_loader)):
-        model_input, _ = item
+        model_input, labels = item
         model_input = model_input.to(device)
         model_output = model(model_input)
         loss = loss_op(model_input, model_output)
@@ -149,7 +149,7 @@ if __name__ == '__main__':
             raise Exception('{} dataset not in {cifar10, cifar100}'.format(args.dataset))
     
     elif "cpen455" in args.dataset:
-        ds_transforms = transforms.Compose([rescaling])
+        ds_transforms = transforms.Compose([transforms.Resize((32,32)), rescaling])
         train_loader = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
                                                                   mode = 'train', 
                                                                   transform=ds_transforms), 

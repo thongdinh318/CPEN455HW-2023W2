@@ -9,9 +9,18 @@ from tqdm import tqdm
 import pandas as pd
 import pdb
 
-rescaling     = lambda x : (x - .5) * 2.
-rescaling_inv = lambda x : .5 * x  + .5
-replicate_color_channel = lambda x : x.repeat(3,1,1)
+# rescaling     = lambda x : (x - .5) * 2.
+# rescaling_inv = lambda x : .5 * x  + .5
+# replicate_color_channel = lambda x : x.repeat(3,1,1)
+
+def rescaling(x):
+    return (x - .5) * 2.
+
+def rescaling_inv(x):
+    return .5 * x  + .5
+
+def replicate_color_channel(x):
+    return x.repeat(3,1,1)
 
 my_bidict = bidict({'Class0': 0, 
                     'Class1': 1,
@@ -59,12 +68,13 @@ class CPEN455Dataset(Dataset):
         return [img for img, cat in self.samples if cat == label]
 
 def show_images(images, categories, mode:str):
-        fig, axs = plt.subplots(1, len(images), figsize=(15, 5))
-        for i, image in enumerate(images):
-            axs[i].imshow(image.permute(1, 2, 0))  # Convert from (C, H, W) to (H, W, C)
-            axs[i].set_title(f"Category: {categories[i]}")
-            axs[i].axis('off')
-        plt.savefig(mode + '_test.png')
+    fig, axs = plt.subplots(1, len(images), figsize=(15, 5))
+    for i, image in enumerate(images):
+        axs[i].imshow(image.permute(1, 2, 0))  # Convert from (C, H, W) to (H, W, C)
+        axs[i].set_title(f"Category: {categories[i]}")
+        axs[i].axis('off')
+    plt.savefig(mode + '_test.png')
+    plt.close()
 
 if __name__ == '__main__':
     
@@ -83,5 +93,5 @@ if __name__ == '__main__':
             print(images.shape, categories)
             images = torch.round(rescaling_inv(images) * 255).type(torch.uint8)
             show_images(images, categories, mode)
-            break  # We only want to see one batch of 4 images in this example
+            # break  # We only want to see one batch of 4 images in this example
         
