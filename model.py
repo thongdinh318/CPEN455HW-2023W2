@@ -97,7 +97,14 @@ class PixelCNN(nn.Module):
         self.init_padding = None
 
 
-    def forward(self, x, sample=False):
+    def forward(self, x, labels=None, sample=False):
+        if (labels != None):
+            b,d,h,w = x.shape
+            embedding = nn.Embedding(4, d)
+            embedding = embedding.to(labels.device)
+            labels = embedding(labels)
+            labels = labels[:,:, None, None].repeat(1,1,h,w)
+            x = x + labels
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]

@@ -7,6 +7,7 @@ from torch.nn.utils import weight_norm as wn
 import numpy as np
 import os
 from PIL import Image
+import torchvision
 
 
 def concat_elu(x):
@@ -246,10 +247,13 @@ def sample(model, sample_batch_size, obs, sample_op):
     with torch.no_grad():
         data = torch.zeros(sample_batch_size, obs[0], obs[1], obs[2])
         data = data.to(next(model.parameters()).device)
+        labels = torch.randint(0, 4, (sample_batch_size,))
+        labels = labels.to(data.device)
+        
         for i in range(obs[1]):
             for j in range(obs[2]):
                 data_v = data
-                out   = model(data_v, sample=True)
+                out   = model(data_v, labels, sample=True)
                 out_sample = sample_op(out)
                 data[:, :, i, j] = out_sample.data[:, :, i, j]
     return data
@@ -284,9 +288,9 @@ def check_dir_and_create(dir):
     if not os.path.exists(dir):
         os.makedirs(dir, exist_ok=True)
         
-def save_images(tensor, images_folder_path):
+def save_images(tensor, images_folder_path, label=''):
     os.makedirs(images_folder_path, exist_ok=True)
     for i, img_tensor in enumerate(tensor):
-        img = Image.fromarray(img_tensor.cpu().numpy().transpose(1, 2, 0), mode='RGB')
-        img_path = f"{images_folder_path}/image_{i+1:02d}.jpg"
+        img = Image.fromarray((img_tensor.cpu().numpy().transpose(1, 2, 0) * 255).astype(np.uint8), mode='RGB')
+        img_path = f"{images_folder_path}/{label}_image_{i+1:02d}.jpg"
         img.save(img_path)

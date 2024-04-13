@@ -13,7 +13,6 @@ from pprint import pprint
 import argparse
 from pytorch_fid.fid_score import calculate_fid_given_paths
 
-
 def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, mode = 'training'):
     if mode == 'training':
         model.train()
@@ -26,7 +25,13 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
     for batch_idx, item in enumerate(tqdm(data_loader)):
         model_input, labels = item
         model_input = model_input.to(device)
-        model_output = model(model_input)
+        if (mode == 'test'):
+            model_output = model(model_input)
+        else:
+            original_label = [my_bidict[item] for item in labels]
+            original_label = torch.tensor(original_label)
+            original_label = original_label.to(device)
+            model_output = model(model_input, original_label)
         loss = loss_op(model_input, model_output)
         loss_tracker.update(loss.item()/deno)
         if mode == 'training':
