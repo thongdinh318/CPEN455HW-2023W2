@@ -1,11 +1,3 @@
-'''
-This code is used to evaluate the classification accuracy of the trained model.
-You should at least guarantee this code can run without any error on validation set.
-And whether this code can run is the most important factor for grading.
-We provide the remaining code, all you should do are, and you can't modify the remaining code:
-1. Replace the random classifier with your trained model.(line 64-68)
-2. modify the get_label function to get the predicted label.(line 18-24)(just like Leetcode solutions)
-'''
 from torchvision import datasets, transforms
 from utils import *
 from model import * 
@@ -19,6 +11,7 @@ nr_resnet_args  = 1
 nr_filter_args = 40
 nr_logistic_mix_args = 5
 model_path = "models\models_train_embedd_output\pcnn_cpen455_from_scratch_199.pth"
+
 
 # Write your code here
 # And get the predicted label, which is a tensor of shape (batch_size,)
@@ -37,20 +30,18 @@ def get_label(model, model_input, device):
     return answer.to(device)
 # End of your code
 
-def classifier(model, data_loader, device):
+def classify(model, data_loader, device):
     model.eval()
-    acc_tracker = ratio_tracker()
+    
+    answer = []
     for batch_idx, item in enumerate(tqdm(data_loader)):
         model_input, categories = item
         model_input = model_input.to(device)
-        original_label = [my_bidict[item] for item in categories]
-        original_label = torch.tensor(original_label, dtype=torch.int64).to(device)
-        answer = get_label(model, model_input, device)
-        correct_num = torch.sum(answer == original_label)
-        acc_tracker.update(correct_num.item(), model_input.shape[0])
+        answer.append(get_label(model, model_input, device))
     
-    return acc_tracker.get_ratio()
-        
+    answer = torch.concat(answer)
+    return answer
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -60,24 +51,21 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--batch_size', type=int,
                         default=32, help='Batch size for inference')
     parser.add_argument('-m', '--mode', type=str,
-                        default='validation', help='Mode for the dataset')
+                        default='test', help='Mode for the dataset')
     
     args = parser.parse_args()
     pprint(args.__dict__)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    kwargs = {'num_workers':0, 'pin_memory':True, 'drop_last':False}
+    kwargs = {'num_workers':1, 'pin_memory':True, 'drop_last':False}
 
     ds_transforms = transforms.Compose([transforms.Resize((32, 32)), rescaling])
     dataloader = torch.utils.data.DataLoader(CPEN455Dataset(root_dir=args.data_dir, 
                                                             mode = args.mode, 
                                                             transform=ds_transforms), 
                                              batch_size=args.batch_size, 
-                                             shuffle=True, 
+                                             shuffle=False, 
                                              **kwargs)
 
-    #Write your code here
-    #You should replace the random classifier with your trained model
-    #Begin of your code
     model = PixelCNN(nr_resnet=nr_resnet_args, nr_filters=nr_filter_args, input_channels=3, nr_logistic_mix=nr_logistic_mix_args)
     model.load_state_dict(torch.load(model_path))
     #End of your code
@@ -88,7 +76,26 @@ if __name__ == '__main__':
     # model.load_state_dict(torch.load('models/conditional_pixelcnn.pth')) #TODO: comment out this back when got a good model
     model.eval()
     print('model parameters loaded')
-    acc = classifier(model = model, data_loader = dataloader, device = device)
-    print(f"Accuracy: {acc}")
-        
-        
+    answer = classify(model = model, data_loader = dataloader, device = device)
+    # print("Answer: ", answer)
+
+    answer_list = answer.tolist()
+    #TODO: write to csv file
+    dataset = CPEN455Dataset(root_dir=args.data_dir, mode = args.mode, transform=ds_transforms)
+    samples = dataset.samples
+    id = []
+
+    for path, _ in samples:
+        id.append(path.split('/')[-1])
+    
+    id.append("fid")
+    fid_score = 32.46250346156025
+    answer_list.append(fid_score)
+    
+    
+    submission_data = {'id': id,
+                  'label': answer_list}
+    
+    
+    df = pd.DataFrame(submission_data)
+    df.to_csv("./submission.csv", index=False)

@@ -9,4 +9,7 @@ python pcnn_train.py \
 --nr_logistic_mix 1 \
 --lr_decay 0.999995 \
 --max_epochs 100 \
---en_wandb True \
+--en_wandb False \
+--tag Local_Debug \
+--save_dir models_debug \
+--sample_dir samples_run/debug \

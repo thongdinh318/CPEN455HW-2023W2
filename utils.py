@@ -7,6 +7,7 @@ from torch.nn.utils import weight_norm as wn
 import numpy as np
 import os
 from PIL import Image
+from dataset import *
 import torchvision
 
 
@@ -242,12 +243,11 @@ def right_shift(x, pad=None):
     return pad(x)
 
 
-def sample(model, sample_batch_size, obs, sample_op):
+def sample(model, sample_batch_size, obs, sample_op, labels):
     model.train(False)
     with torch.no_grad():
         data = torch.zeros(sample_batch_size, obs[0], obs[1], obs[2])
         data = data.to(next(model.parameters()).device)
-        labels = torch.randint(0, 4, (sample_batch_size,))
         labels = labels.to(data.device)
         
         for i in range(obs[1]):

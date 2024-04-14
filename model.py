@@ -66,6 +66,7 @@ class PixelCNN(nn.Module):
         self.down_shift_pad  = nn.ZeroPad2d((0, 0, 1, 0))
 
         down_nr_resnet = [nr_resnet] + [nr_resnet + 1] * 2
+        # self.embedding = nn.Embedding(4, self.input_channels)
         self.down_layers = nn.ModuleList([PixelCNNLayer_down(down_nr_resnet[i], nr_filters,
                                                 self.resnet_nonlinearity) for i in range(3)])
 
@@ -94,17 +95,17 @@ class PixelCNN(nn.Module):
 
         num_mix = 3 if self.input_channels == 1 else 10
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
+        self.embedding = nn.Embedding(4, num_mix * nr_logistic_mix)
         self.init_padding = None
 
 
     def forward(self, x, labels=None, sample=False):
-        if (labels != None):
-            b,d,h,w = x.shape
-            embedding = nn.Embedding(4, d)
-            embedding = embedding.to(labels.device)
-            labels = embedding(labels)
-            labels = labels[:,:, None, None].repeat(1,1,h,w)
-            x = x + labels
+        # Embedding at input
+        # b,d,h,w = x.shape
+        # embedded_labels = self.embedding(labels)
+        # embedded_labels = embedded_labels[:,:, None, None].repeat(1,1,h,w)
+        # x = x + embedded_labels
+
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
@@ -148,7 +149,11 @@ class PixelCNN(nn.Module):
         x_out = self.nin_out(F.elu(ul))
 
         assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
-
+        # Embedding output
+        b,d,h,w = x_out.shape
+        embedded_labels = self.embedding(labels)
+        embedded_labels = embedded_labels[:,:, None, None].repeat(1,1,h,w)
+        x_out = x_out + embedded_labels
         return x_out
     
     

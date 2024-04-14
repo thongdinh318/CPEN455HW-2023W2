@@ -29,8 +29,7 @@ def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, m
             model_output = model(model_input)
         else:
             original_label = [my_bidict[item] for item in labels]
-            original_label = torch.tensor(original_label)
-            original_label = original_label.to(device)
+            original_label = torch.tensor(original_label).to(device)
             model_output = model(model_input, original_label)
         loss = loss_op(model_input, model_output)
         loss_tracker.update(loss.item()/deno)
@@ -205,14 +204,14 @@ if __name__ == '__main__':
         
         # decrease learning rate
         scheduler.step()
-        train_or_test(model = model,
-                      data_loader = test_loader,
-                      optimizer = optimizer,
-                      loss_op = loss_op,
-                      device = device,
-                      args = args,
-                      epoch = epoch,
-                      mode = 'test')
+        # train_or_test(model = model,
+        #               data_loader = test_loader,
+        #               optimizer = optimizer,
+        #               loss_op = loss_op,
+        #               device = device,
+        #               args = args,
+        #               epoch = epoch,
+        #               mode = 'test')
         
         train_or_test(model = model,
                       data_loader = val_loader,
@@ -225,7 +224,17 @@ if __name__ == '__main__':
         
         if epoch % args.sampling_interval == 0:
             print('......sampling......')
-            sample_t = sample(model, args.sample_batch_size, args.obs, sample_op)
+            num_samples_each_class = args.sample_batch_size // 4
+            remains = args.sample_batch_size % 4
+
+            labels = []
+            for label in my_bidict:
+                labels.append(torch.full((num_samples_each_class,), my_bidict[label]))
+            
+            labels.append(torch.randint(0, 4, (remains,)))
+
+            labels_t = torch.concat(labels)
+            sample_t = sample(model, args.sample_batch_size, args.obs, sample_op, labels_t)
             sample_t = rescaling_inv(sample_t)
             save_images(sample_t, args.sample_dir)
             sample_result = wandb.Image(sample_t, caption="epoch {}".format(epoch))

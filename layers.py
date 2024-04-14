@@ -139,3 +139,27 @@ class gated_resnet(nn.Module):
         a, b = torch.chunk(x, 2, dim=1)
         c3 = a * F.sigmoid(b)
         return og_x + c3
+    
+class AbsolutePositionalEncoding(nn.Module):
+    BATCH_SIZE = 16
+    def __init__(self, d_model):
+        super().__init__()
+        self.W = nn.Parameter(torch.empty((self.BATCH_SIZE, d_model)))
+        nn.init.normal_(self.W)
+
+    def forward(self, x):
+        """
+        args:
+            x: shape B x D x H x W
+        returns:
+            out: shape B x D x H x W
+        START BLOCK
+        """
+        B, D, H, W = x.shape
+        out = torch.zeros((B,D, H, W))
+        weight_matrix = self.W[:, :, None, None].repeat(1,1, H, W)
+        out = torch.add(weight_matrix, x)
+        """
+        END BLOCK
+        """
+        return out
