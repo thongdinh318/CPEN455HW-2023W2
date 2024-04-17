@@ -12,6 +12,7 @@ from tqdm import tqdm
 from pprint import pprint
 import argparse
 from pytorch_fid.fid_score import calculate_fid_given_paths
+from classification_evaluation import classifier
 
 def train_or_test(model, data_loader, optimizer, loss_op, device, args, epoch, mode = 'training'):
     if mode == 'training':
@@ -255,4 +256,11 @@ if __name__ == '__main__':
         if (epoch + 1) % args.save_interval == 0: 
             if not os.path.exists("models"):
                 os.makedirs("models")
-            torch.save(model.state_dict(), 'models/{}_{}.pth'.format(model_name, epoch))
+            torch.save(model.state_dict(), args.save_dir + '/{}_{}.pth'.format(model_name, epoch))
+
+            with torch.no_grad():
+                accuracy = classifier(model=model, data_loader=val_loader, device=device)
+            
+            print("Validation accuracy: ", accuracy)
+            if args.en_wandb:
+                wandb.log({"Validation accuracy": accuracy})

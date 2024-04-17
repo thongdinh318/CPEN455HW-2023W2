@@ -66,7 +66,9 @@ class PixelCNN(nn.Module):
         self.down_shift_pad  = nn.ZeroPad2d((0, 0, 1, 0))
 
         down_nr_resnet = [nr_resnet] + [nr_resnet + 1] * 2
-        # self.embedding = nn.Embedding(4, self.input_channels)
+        
+        # self.embedding = nn.Embedding(4, nr_filters)
+        
         self.down_layers = nn.ModuleList([PixelCNNLayer_down(down_nr_resnet[i], nr_filters,
                                                 self.resnet_nonlinearity) for i in range(3)])
 
@@ -95,7 +97,8 @@ class PixelCNN(nn.Module):
 
         num_mix = 3 if self.input_channels == 1 else 10
         self.nin_out = nin(nr_filters, num_mix * nr_logistic_mix)
-        self.embedding = nn.Embedding(4, num_mix * nr_logistic_mix)
+
+        # self.embedding = nn.Embedding(4, num_mix * nr_logistic_mix)
         self.init_padding = None
 
 
@@ -122,11 +125,25 @@ class PixelCNN(nn.Module):
         x = x if sample else torch.cat((x, self.init_padding), 1)
         u_list  = [self.u_init(x)]
         ul_list = [self.ul_init[0](x) + self.ul_init[1](x)]
+        
+        # print("x shape: ", x.shape)
+        # print("init u Shape: ", u_list[0].shape)
+        # print("init ul Shape: ", ul_list[0].shape)
+
+        # embedded_labels = self.embedding(labels)
+        # embedded_labels = embedded_labels[:, :, None, None].repeat(1,1,1,1)
+        
+        encoded_labels = to_one_hot(labels, self.nr_filters)
+        encoded_labels = encoded_labels[:,:,None,None].repeat(1,1,1,1)
         for i in range(3):
             # resnet block
             u_out, ul_out = self.up_layers[i](u_list[-1], ul_list[-1])
             u_list  += u_out
             ul_list += ul_out
+
+            for j in range (len(u_list)):
+                u_list[j] = u_list[j] + encoded_labels
+                ul_list[j] = ul_list[j] + encoded_labels
 
             if i != 2:
                 # downscale (only twice)
@@ -134,8 +151,10 @@ class PixelCNN(nn.Module):
                 ul_list += [self.downsize_ul_stream[i](ul_list[-1])]
 
         ###    DOWN PASS    ###
-        u  = u_list.pop()
-        ul = ul_list.pop()
+        # u  = u_list.pop()
+        # ul = ul_list.pop()
+        u  = u_list.pop() + encoded_labels
+        ul = ul_list.pop() + encoded_labels
 
         for i in range(3):
             # resnet block
@@ -149,11 +168,17 @@ class PixelCNN(nn.Module):
         x_out = self.nin_out(F.elu(ul))
 
         assert len(u_list) == len(ul_list) == 0, pdb.set_trace()
+        
+        # b,d,h,w = x_out.shape
         # Embedding output
-        b,d,h,w = x_out.shape
-        embedded_labels = self.embedding(labels)
-        embedded_labels = embedded_labels[:,:, None, None].repeat(1,1,h,w)
-        x_out = x_out + embedded_labels
+        # embedded_labels = self.embedding(labels)
+        # embedded_labels = embedded_labels[:,:, None, None].repeat(1,1,h,w)
+        # x_out = x_out + embedded_labels
+
+        #One-hot encoding
+        # encoded_labels = to_one_hot(labels, d)
+        # encoded_labels = encoded_labels[:,:,None,None].repeat(1,1,1,1)
+        # x_out = x_out + encoded_labels
         return x_out
     
     

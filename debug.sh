@@ -5,11 +5,11 @@ python pcnn_train.py \
 --save_interval 50 \
 --dataset cpen455 \
 --nr_resnet 1 \
---nr_filters 5 \
---nr_logistic_mix 1 \
+--nr_filters 40 \
+--nr_logistic_mix 5 \
 --lr_decay 0.999995 \
 --max_epochs 100 \
---en_wandb False \
---tag Local_Debug \
---save_dir models_debug \
---sample_dir samples_run/debug \
+--en_wandb True \
+--tag Local_Debug_Up_Down_Pass \
+--save_dir models/debug_up_down_pass \
+--sample_dir samples_run/debug_up_down_pass \

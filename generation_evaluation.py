@@ -12,14 +12,16 @@ from model import *
 from dataset import *
 import os
 import torch
+
 # You should modify this sample function to get the generated images from your model
 # This function should save the generated images to the gen_data_dir, which is fixed as 'samples'
 # Begin of your code
 nr_resnet_args  = 1
 nr_filter_args = 40
 nr_logistic_mix_args = 5
-model_path = "models\models_train_embedd_output\pcnn_cpen455_from_scratch_199.pth"
+# model_path = "models\onehot_embed_up_down_1resnet_40filters_5mix\pcnn_cpen455_from_scratch_199.pth"
 sample_op = lambda x : sample_from_discretized_mix_logistic(x, nr_logistic_mix_args)
+
 def my_sample(model, gen_data_dir, sample_batch_size = 25, obs = (3,32,32), sample_op = sample_op):
     for label in my_bidict:
         print(f"Label: {label}")
@@ -28,7 +30,6 @@ def my_sample(model, gen_data_dir, sample_batch_size = 25, obs = (3,32,32), samp
         sample_t = sample(model, sample_batch_size, obs, sample_op, labels)
         sample_t = rescaling_inv(sample_t)
         save_images(sample_t, os.path.join(gen_data_dir), label=label)
-    # pass
 # End of your code
 
 if __name__ == "__main__":
@@ -42,8 +43,11 @@ if __name__ == "__main__":
     #Begin of your code
     #Load your model and generate images in the gen_data_dir
     model = PixelCNN(nr_resnet=nr_resnet_args, nr_filters=nr_filter_args, input_channels=3, nr_logistic_mix=nr_logistic_mix_args)
-    model.load_state_dict(torch.load(model_path))
     model = model.to(device)
+    
+    # model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load('models/conditional_pixelcnn.pth'))
+    
     model = model.eval()
     my_sample(model=model, gen_data_dir=gen_data_dir)
     #End of your code

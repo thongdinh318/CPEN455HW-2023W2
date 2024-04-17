@@ -5,37 +5,22 @@ from dataset import *
 from tqdm import tqdm
 from pprint import pprint
 import argparse
+from classification_evaluation import get_label
 NUM_CLASSES = len(my_bidict)
 
 nr_resnet_args  = 1
 nr_filter_args = 40
 nr_logistic_mix_args = 5
-model_path = "models\models_train_embedd_output\pcnn_cpen455_from_scratch_199.pth"
+fid_score = 28.507974575800922
+model_path = "models\onehot_embed_up_down_1resnet_40filters_5mix\pcnn_cpen455_from_scratch_199.pth"
 
-
-# Write your code here
-# And get the predicted label, which is a tensor of shape (batch_size,)
-# Begin of your code
-def get_label(model, model_input, device):
-    b,d,h,w = model_input.shape
-    log_prob = torch.zeros((len(my_bidict),b))
-    for label in my_bidict:
-        label_t = torch.full((b,), my_bidict[label]).to(device)
-        model_output = model(model_input, label_t)
-        log_prob_class = discretized_mix_logistic_loss_per_img(model_input, model_output)
-        log_prob[my_bidict[label], :] = -torch.sum(log_prob_class, dim=(1,2))
-    
-    # print(log_prob)
-    answer = torch.argmax(log_prob, dim=0)
-    return answer.to(device)
-# End of your code
 
 def classify(model, data_loader, device):
     model.eval()
     
     answer = []
     for batch_idx, item in enumerate(tqdm(data_loader)):
-        model_input, categories = item
+        model_input, _ = item
         model_input = model_input.to(device)
         answer.append(get_label(model, model_input, device))
     
@@ -67,20 +52,19 @@ if __name__ == '__main__':
                                              **kwargs)
 
     model = PixelCNN(nr_resnet=nr_resnet_args, nr_filters=nr_filter_args, input_channels=3, nr_logistic_mix=nr_logistic_mix_args)
-    model.load_state_dict(torch.load(model_path))
     #End of your code
-    
     model = model.to(device)
+
     #Attention: the path of the model is fixed to 'models/conditional_pixelcnn.pth'
     #You should save your model to this path
-    # model.load_state_dict(torch.load('models/conditional_pixelcnn.pth')) #TODO: comment out this back when got a good model
+    # model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load('models/conditional_pixelcnn.pth'))
     model.eval()
     print('model parameters loaded')
-    answer = classify(model = model, data_loader = dataloader, device = device)
-    # print("Answer: ", answer)
 
+    answer = classify(model = model, data_loader = dataloader, device = device)
     answer_list = answer.tolist()
-    #TODO: write to csv file
+
     dataset = CPEN455Dataset(root_dir=args.data_dir, mode = args.mode, transform=ds_transforms)
     samples = dataset.samples
     id = []
@@ -89,7 +73,7 @@ if __name__ == '__main__':
         id.append(path.split('/')[-1])
     
     id.append("fid")
-    fid_score = 32.46250346156025
+    
     answer_list.append(fid_score)
     
     
@@ -98,4 +82,4 @@ if __name__ == '__main__':
     
     
     df = pd.DataFrame(submission_data)
-    df.to_csv("./submission.csv", index=False)
+    df.to_csv("./leaderboard_submission.csv", index=False)

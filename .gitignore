@@ -2,6 +2,7 @@
 .idea/
 wandb
 *log
+models_run
 models
 data/MNIST
 data/Imagenet*
